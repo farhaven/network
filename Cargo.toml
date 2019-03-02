@@ -1,0 +1,10 @@
+[package]
+name = "network"
+version = "0.1.0"
+authors = ["Gregor Best <gbe@unobtanium.de>"]
+edition = "2018"
+
+[dependencies]
+num = "*"
+ndarray = "*"
+rand = "*"
