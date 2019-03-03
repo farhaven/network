@@ -124,47 +124,6 @@ impl Network {
         }
         (*(output.as_slice().unwrap())).into()
     }
-
-    pub fn breed(&self, other: &Network) -> Network {
-        /* Create a new child network from `self` and `other`, selecting weights with equal probability */
-        let mut rng = rand::thread_rng();
-        let mut child = Network::new(self.layer_sizes.to_vec());
-        for idx in 0..self.layers.len() {
-            let s = self.layers[idx].shape();
-            let map = Array2::<f64>::from_shape_fn((s[0], s[1]), |_| rng.gen()).mapv(|a| if a < 0.5 {0.0} else {1.0});
-            let new_weights = (&map * &self.layers[idx].weights) +
-                            ((Array2::<f64>::ones((s[0], s[1])) - &map) * &other.layers[idx].weights);
-            let mut new_layer = Layer::new(s[0], s[1]);
-            new_layer.weights = new_weights;
-
-            child.layers[idx] = new_layer;
-        }
-        child
-    }
-
-    pub fn mutate(&mut self, rate: f64) {
-        let mut rng = rand::thread_rng();
-        let mut new_layers: Vec<Layer> = vec![];
-
-        for idx in 0..self.layers.len() {
-            let s = self.layers[idx].shape();
-            let mutation = Array2::<f64>::from_shape_fn((s[0], s[1]), |_| {
-                let c: f64 = rng.gen();
-                if c > rate {
-                    0.0
-                } else {
-                    let m: f64 = rng.gen();
-                    (m * 2.0) - 1.0
-                }
-            });
-            let new_weights = &self.layers[idx].weights + &mutation;
-            let mut new_layer = Layer::new(s[0], s[1]);
-            new_layer.weights = new_weights;
-            new_layers.push(new_layer);
-        }
-
-        self.layers = new_layers;
-    }
 }
 
 #[cfg(test)]
@@ -193,14 +152,6 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_breed() {
-        let n1 = Network::new(vec![2, 3, 1]);
-        let n2 = Network::new(vec![2, 3, 1]);
-        let c = n1.breed(&n2);
-        drop(c);
-    }
-
-    #[test]
     fn test_xor_backprop() {
         /* Teach a 2x3x1 network to do XOR with backprop */
         let samples = [[vec![0.0, 0.0], vec![0.0]],
@@ -225,87 +176,5 @@ mod tests {
             assert!(pred[0].round() == s[1][0]);
             println!("S: {:?}, net: {:?}", s, pred);
         }
-    }
-
-    #[test]
-    fn test_xor_breed() {
-        let limit = 1e-3;
-        let mutrate = 0.2;
-        let numnets = 25;
-        let numparents = 5;
-        let geometry = vec![2, 4, 1];
-
-        assert!((numparents as f32) <= (numnets as f32).sqrt());
-
-        /* Train 2x4x1 networks to do XOR by selective breeding */
-        let samples = [[vec![0.0, 0.0], vec![0.0]],
-                       [vec![0.0, 1.0], vec![1.0]],
-                       [vec![1.0, 0.0], vec![1.0]],
-                       [vec![1.0, 1.0], vec![0.0]]];
-        let mut networks: Vec<Network> = (0..numnets).map(|_| Network::new(geometry.to_vec())).collect();
-        let sample_err = |net: &mut Network| -> f64 {
-            let mut e = 0.0;
-            for s in &samples {
-                e += net.error(&s[0], &s[1]);
-            }
-            e
-        };
-        let _net_cmp = |a: &mut Network, b: &mut Network| {
-            let ae = sample_err(a);
-            let be = sample_err(b);
-            ae.partial_cmp(&be).unwrap()
-        };
-
-        let mut iterations = 0;
-        loop {
-            break
-            iterations += 1;
-            // networks.sort_by(net_cmp);
-            let mut total_err = 0.0;
-            for n in &mut networks {
-                total_err += sample_err(n);
-            }
-            let best_err = sample_err(&mut networks[0]);
-            if best_err < limit {
-                break;
-            }
-            if iterations % 50 == 0 {
-                println!("Total err: {} best err {}", total_err, best_err);
-            }
-            /* Take the top `numparents` networks, cross breed them, re-sort by fitness, cut list down to `numnets` networks */
-            let mut children: Vec<Network> = vec![];
-            for p1idx in 0..numparents {
-                for p2idx in 0..numparents {
-                    if p1idx == p2idx {
-                        continue;
-                    }
-                    let child = networks[p1idx].breed(&networks[p2idx]);
-                    children.push(child);
-                }
-            }
-            networks.append(&mut children);
-
-            for idx in 0..networks.len() {
-                networks[idx].mutate(mutrate);
-            }
-
-            /* Re-sort network list */
-            // networks.sort_by(net_cmp);
-            /* Cut off networks list */
-            networks.truncate(numnets);
-        }
-
-        let best_net = &mut networks[0];
-        println!("Took {} iterations to breed a network with target error", iterations);
-
-        for s in &samples {
-            let pred = best_net.forward(&s[0]);
-            assert!(pred[0].round() == s[1][0]);
-            println!("S: {:?}, net: {:?}", s, pred);
-        }
-
-        println!("Best network: {:?}", best_net);
-
-        assert!(iterations < 200);
     }
 }
