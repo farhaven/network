@@ -1,0 +1,19 @@
+* Network
+Everyone has a neural network library for Rust. This one is mine.
+
+* API
+There are ~Layer~s and ~Network~s. Consumers only need to interact with ~Network~:
+
+#+BEGIN_SRC rust
+let mut net = Network::new(vec![2, 3, 1]); /* Create network with 2 inputs, 3 hidden neurons and one output */
+/* Train network a bit */
+let input = vec![0_f64, 1_f64];
+let output = net.forward(&input);
+let error = net.error(&output, &input);
+net.backprop(&input, &error, 1_f64); /* Teach network about `input` with learning rate 1_f64 */
+let new_output = net.forward(&input); /* Hopefully better output than before */
+#+END_SRC
+
+The network uses ~f64~ as the type for values and weights. You'll have to implement training algorithms yourself. You
+can take the test ~test_network::test_xor~ as an example. It trains a 2x2x1 network to do XOR, adjusting the learning
+rate as it goes. It usually reaches an MSE of ~0.01~ after about 400 training rounds.
