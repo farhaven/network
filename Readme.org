@@ -1,5 +1,12 @@
 * Network
-Everyone has a neural network library for Rust. This one is mine.
+Everyone has a neural network library for Rust. This one is mine, and it's not very sophisticated. I use this as a
+learning vehicle, so don't expect fancy algorithms and hardware offloading, and don't expect magnificent speed and
+recognition either. Readable and understandable code is the number one goal of this library, so if anything looks weird,
+please open an issue.
+
+Also, I'm building this stuff on OpenBSD, where neither nightly Rust nor stuff like Tensor Flow or Cuda or
+~$YourFavouriteGPGPUFramework~ is available, so this is mostly CPU bound. Maybe I'll play around with OpenGL compute
+shaders in the future, but don't hold your breath on that.
 
 * API
 There are ~Layer~s and ~Network~s. Consumers only need to interact with ~Network~:
