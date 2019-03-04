@@ -193,7 +193,7 @@ mod test_network {
 
     #[test]
     fn test_xor() {
-        let mut network = Network::new(vec![2, 3, 1]);
+        let mut network = Network::new(vec![2, 2, 1]);
         let samples = vec![(vec![0_f64, 0_f64], vec![0_f64]),
                            (vec![0_f64, 1_f64], vec![1_f64]),
                            (vec![1_f64, 0_f64], vec![1_f64]),
