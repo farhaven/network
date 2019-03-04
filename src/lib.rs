@@ -1,2 +1,2 @@
-mod network;
-mod mnist_loader;
+pub mod network;
+pub mod mnist_loader;
