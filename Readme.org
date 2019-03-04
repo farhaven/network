@@ -9,7 +9,7 @@ Also, I'm building this stuff on OpenBSD, where neither nightly Rust nor stuff l
 shaders in the future, but don't hold your breath on that.
 
 * API
-There are ~Layer~s and ~Network~s. Consumers only need to interact with ~Network~:
+There are ~Layer~ s and ~Network~ s. Consumers only need to interact with ~Network~:
 
 #+BEGIN_SRC rust
 let mut net = Network::new(vec![2, 3, 1]); /* Create network with 2 inputs, 3 hidden neurons and one output */
