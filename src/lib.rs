@@ -1,4 +1,4 @@
-use ndarray::Array2;
+use ndarray::{Array1, Array2};
 use rand::Rng;
 
 #[derive(Debug)]
@@ -24,12 +24,12 @@ impl Layer {
 
     pub fn forward(&mut self, inputs: &Array2<f64>) -> Array2<f64> {
         let output = self.weights.t().dot(&inputs.t()).map(sigmoid);
-        self.output = output.clone();
-        output
+        self.output = output.t().to_owned().clone();
+        output.t().to_owned()
     }
 
     pub fn compute_gradient(&mut self, error: Array2<f64>) -> Array2<f64> {
-        self.delta = error * self.output.t().map(sigmoid_prime);
+        self.delta = error * self.output.map(sigmoid_prime);
         self.delta.dot(&self.weights.t())
     }
 
@@ -97,4 +97,124 @@ fn sigmoid(z: &f64) -> f64 {
 
 fn sigmoid_prime(z: &f64) -> f64 {
     sigmoid(z) * (1.0 - sigmoid(z))
+}
+
+#[derive(Debug)]
+pub struct Network {
+    layers: Vec<Layer>,
+    layer_sizes: Vec<usize>
+}
+
+impl Network {
+    pub fn new(layer_sizes: Vec<usize>) -> Network {
+        let mut layers = Vec::<Layer>::new();
+
+        for idx in 0..layer_sizes.len() - 1 {
+            let inputs = layer_sizes[idx];
+            let outputs = layer_sizes[idx + 1];
+            layers.push(Layer::new(inputs, outputs));
+        }
+
+        Network{
+            layers: layers,
+            layer_sizes: layer_sizes
+        }
+    }
+
+    pub fn forward(&mut self, input: &Vec<f64>) -> Vec<f64> {
+        let mut output = Array2::<f64>::from_shape_vec((1, input.len()), input.to_vec()).unwrap();
+
+        for layer in &mut self.layers {
+            output = layer.forward(&output);
+        }
+
+        let mut res = Vec::<f64>::new();
+        res.extend_from_slice(output.column(0).into_slice().unwrap());
+        res
+    }
+
+    pub fn backprop(&mut self, input_param: &Vec<f64>, error_param: &Vec<f64>, learning_rate: f64) {
+        let mut error = Array2::<f64>::from_shape_vec((1, error_param.len()), error_param.to_vec()).unwrap();
+
+        for lidx in (0..self.layers.len()).rev() {
+            let layer = &mut self.layers[lidx];
+            error = layer.compute_gradient(error);
+        }
+
+        let mut input = Array2::<f64>::from_shape_vec((1, input_param.len()), input_param.to_vec()).unwrap();
+        for layer in &mut self.layers {
+            layer.update_weights(input, learning_rate);
+            input = layer.output.clone();
+        }
+    }
+
+    pub fn error(&self, output: &Vec<f64>, target: &Vec<f64>) -> Vec<f64> {
+        (Array1::from_vec(target.to_vec()) - Array1::from_vec(output.to_vec())).iter()
+                                                                               .map(|&x| x)
+                                                                               .collect()
+    }
+}
+
+#[cfg(test)]
+mod test_network {
+    use super::*;
+
+    #[test]
+    fn test_forward() {
+        let mut network = Network::new(vec![2, 3, 1]);
+        let output = network.forward(&vec![1_f64, 0_f64]);
+        println!("Output: {:?}", output);
+    }
+
+    #[test]
+    fn test_backprop() {
+        let mut network = Network::new(vec![2, 3, 1]);
+
+        let input = vec![0_f64, 1_f64];
+        let target = vec![1_f64];
+        let output1 = network.forward(&input);
+        let error1 = network.error(&output1, &target);
+
+        println!("In: {:?}, Target: {:?}, Output: {:?}, Error: {:?}", input, target, output1, error1);
+
+        network.backprop(&input, &error1, 1_f64);
+
+        let output2 = network.forward(&input);
+        let error2 = network.error(&output2, &target);
+
+        println!("In: {:?}, Target: {:?}, Output: {:?}, Error: {:?}", input, target, output2, error2);
+
+        /* Calculate squared error before and after training to assert some gradual improvement */
+        let mse1 = error1.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
+        let mse2 = error2.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
+
+        assert!(mse2 <= mse1); /* Assert _some_ improvement */
+    }
+
+    #[test]
+    fn test_xor() {
+        let mut network = Network::new(vec![2, 3, 1]);
+        let samples = vec![(vec![0_f64, 0_f64], vec![0_f64]),
+                           (vec![0_f64, 1_f64], vec![1_f64]),
+                           (vec![1_f64, 0_f64], vec![1_f64]),
+                           (vec![1_f64, 1_f64], vec![0_f64])];
+
+        let mut iter = 0;
+        while iter < 5000 {
+            iter += 1;
+
+            for (input, target) in &samples {
+                let output = network.forward(input);
+                let error = network.error(&output, target);
+                network.backprop(input, &error, 0.5_f64);
+            }
+        }
+
+        for (input, target) in &samples {
+            let output = network.forward(input);
+            let rounded_output: Vec<f64> = output.iter().map(|&x| x.round()).collect();
+            println!("In: {:?}, Out: {:?}, Target: {:?}, Round: {:?}", input, output, target, rounded_output);
+            assert_eq!(&rounded_output, target);
+        }
+    }
 }
