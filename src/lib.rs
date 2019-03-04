@@ -185,10 +185,10 @@ mod test_network {
         println!("In: {:?}, Target: {:?}, Output: {:?}, Error: {:?}", input, target, output2, error2);
 
         /* Calculate squared error before and after training to assert some gradual improvement */
-        let mse1 = error1.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
-        let mse2 = error2.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
+        let se1 = error1.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
+        let se2 = error2.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64));
 
-        assert!(mse2 <= mse1); /* Assert _some_ improvement */
+        assert!(se2 <= se1); /* Assert _some_ improvement */
     }
 
     #[test]
@@ -199,16 +199,32 @@ mod test_network {
                            (vec![1_f64, 0_f64], vec![1_f64]),
                            (vec![1_f64, 1_f64], vec![0_f64])];
 
+        let target_mse = 0.01;
+        let mut errors: Vec<f64> = vec![];
+
         let mut iter = 0;
-        while iter < 5000 {
+        while iter < 10000 {
             iter += 1;
 
             for (input, target) in &samples {
                 let output = network.forward(input);
                 let error = network.error(&output, target);
                 network.backprop(input, &error, 0.5_f64);
+                errors.push(error.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64)));
+            }
+
+            /* Report MSE every 100 iterations */
+            if iter % 100 == 0 {
+                let mse = errors.iter().fold(0_f64, |acc, x| acc + x).sqrt() / (errors.len() as f64);
+                println!("Iter: {}, MSE: {}", iter, mse);
+                if mse <= target_mse {
+                    println!("Reached target MSE after {} iterations", iter);
+                    break;
+                }
             }
         }
+
+        assert!(iter <= 1000);
 
         for (input, target) in &samples {
             let output = network.forward(input);
