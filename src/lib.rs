@@ -1,6 +1,14 @@
 use ndarray::{Array1, Array2};
 use rand::Rng;
 
+fn nonlinearity(z: &f64) -> f64 {
+    z.tanh()
+}
+
+fn nonlinearity_prime(z: &f64) -> f64 {
+    1_f64 - z.powf(2_f64)
+}
+
 #[derive(Debug)]
 pub struct Layer {
     output: Array2<f64>,
@@ -23,13 +31,13 @@ impl Layer {
     }
 
     pub fn forward(&mut self, inputs: &Array2<f64>) -> Array2<f64> {
-        let output = self.weights.t().dot(&inputs.t()).map(sigmoid);
+        let output = self.weights.t().dot(&inputs.t()).map(nonlinearity);
         self.output = output.t().to_owned().clone();
         output.t().to_owned()
     }
 
     pub fn compute_gradient(&mut self, error: Array2<f64>) -> Array2<f64> {
-        self.delta = error * self.output.map(sigmoid_prime);
+        self.delta = error * self.output.map(nonlinearity_prime);
         self.delta.dot(&self.weights.t())
     }
 
@@ -89,14 +97,6 @@ mod test_layer {
         let _ = layer.compute_gradient(error);
         layer.update_weights(input, 2_f64);
     }
-}
-
-fn sigmoid(z: &f64) -> f64 {
-    1.0 / (1.0 + (-z).exp())
-}
-
-fn sigmoid_prime(z: &f64) -> f64 {
-    sigmoid(z) * (1.0 - sigmoid(z))
 }
 
 #[derive(Debug)]
