@@ -200,6 +200,7 @@ mod test_network {
                            (vec![1_f64, 1_f64], vec![0_f64])];
 
         let target_mse = 0.01;
+        let mut learning_rate = 1_f64;
         let mut errors: Vec<f64> = vec![];
 
         let mut iter = 0;
@@ -209,7 +210,7 @@ mod test_network {
             for (input, target) in &samples {
                 let output = network.forward(input);
                 let error = network.error(&output, target);
-                network.backprop(input, &error, 0.5_f64);
+                network.backprop(input, &error, learning_rate);
                 errors.push(error.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64)));
             }
 
@@ -221,6 +222,7 @@ mod test_network {
                     println!("Reached target MSE after {} iterations", iter);
                     break;
                 }
+                learning_rate = mse;
             }
         }
 
