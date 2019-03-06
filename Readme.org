@@ -21,6 +21,8 @@ net.backprop(&input, &error, 1_f64); /* Teach network about `input` with learnin
 let new_output = net.forward(&input); /* Hopefully better output than before */
 #+END_SRC
 
-The network uses ~f64~ as the type for values and weights. You'll have to implement training algorithms yourself. You
-can take the test ~test_network::test_xor~ as an example. It trains a 2x2x1 network to do XOR, adjusting the learning
-rate as it goes. It usually reaches an MSE of ~0.01~ after about 400 training rounds.
+The network uses ~f64~ as the type for values and weights and ~tanh~ as the nonlinearity.
+
+You'll have to implement training algorithms yourself. You can take the test ~test_network::test_xor~ as an example. It
+trains a 2x2x1 network to do XOR, adjusting the learning rate as it goes. It usually reaches an MSE of ~0.01~ after
+about 400 training rounds.
