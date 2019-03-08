@@ -31,9 +31,9 @@ impl Layer {
     }
 
     pub fn forward(&mut self, inputs: &Array2<f64>) -> Array2<f64> {
-        let output = self.weights.t().dot(&inputs.t()).map(nonlinearity);
-        self.output = output.t().to_owned().clone();
-        output.t().to_owned()
+        let output = self.weights.t().dot(&inputs.t()).map(nonlinearity).t().to_owned();
+        self.output = output.clone();
+        output
     }
 
     pub fn compute_gradient(&mut self, error: Array2<f64>) -> Array2<f64> {
@@ -44,10 +44,6 @@ impl Layer {
     pub fn update_weights(&mut self, input: Array2<f64>, learning_rate: f64) {
         let delta = input.t().dot(&self.delta) * learning_rate;
         self.weights += &delta;
-    }
-
-    pub fn shape<'a>(&'a self) -> &'a[usize] {
-        self.weights.shape()
     }
 }
 
@@ -199,12 +195,12 @@ mod test_network {
                            (vec![1_f64, 0_f64], vec![1_f64]),
                            (vec![1_f64, 1_f64], vec![0_f64])];
 
-        let target_mse = 0.01;
+        let target_mse = 0.005;
         let mut learning_rate = 1_f64;
         let mut errors: Vec<f64> = vec![];
 
         let mut iter = 0;
-        while iter < 10000 {
+        loop {
             iter += 1;
 
             for (input, target) in &samples {
@@ -225,8 +221,6 @@ mod test_network {
                 learning_rate = mse.sqrt();
             }
         }
-
-        assert!(iter <= 1000);
 
         for (input, target) in &samples {
             let output = network.forward(input);
