@@ -36,12 +36,12 @@ impl Layer {
         output
     }
 
-    pub fn compute_gradient(&mut self, error: Array2<f64>) -> Array2<f64> {
-        self.delta = error * self.output.map(nonlinearity_prime);
+    pub fn compute_gradient(&mut self, error: &Array2<f64>) -> Array2<f64> {
+        self.delta = error * &self.output.map(nonlinearity_prime);
         self.delta.dot(&self.weights.t())
     }
 
-    pub fn update_weights(&mut self, input: Array2<f64>, learning_rate: f64) {
+    pub fn update_weights(&mut self, input: &Array2<f64>, learning_rate: f64) {
         let delta = input.t().dot(&self.delta) * learning_rate;
         self.weights += &delta;
     }
@@ -75,7 +75,7 @@ mod test_layer {
         let mut layer = Layer::new(3, 2);
         let output = layer.forward(&input);
 
-        let gradient = layer.compute_gradient(error);
+        let gradient = layer.compute_gradient(&error);
         println!("Output: {}", output);
         println!("Gradient: {}", gradient);
 
@@ -90,8 +90,8 @@ mod test_layer {
 
         let mut layer = Layer::new(3, 2);
         let _ = layer.forward(&input);
-        let _ = layer.compute_gradient(error);
-        layer.update_weights(input, 2_f64);
+        let _ = layer.compute_gradient(&error);
+        layer.update_weights(&input, 2_f64);
     }
 }
 
@@ -124,7 +124,7 @@ impl Network {
             output = layer.forward(&output);
         }
 
-        let mut res = Vec::<f64>::new();
+        let mut res = Vec::<f64>::with_capacity(output.shape()[0]);
         res.extend_from_slice(output.column(0).into_slice().unwrap());
         res
     }
@@ -134,12 +134,12 @@ impl Network {
 
         for lidx in (0..self.layers.len()).rev() {
             let layer = &mut self.layers[lidx];
-            error = layer.compute_gradient(error);
+            error = layer.compute_gradient(&error);
         }
 
         let mut input = Array2::<f64>::from_shape_vec((1, input_param.len()), input_param.to_vec()).unwrap();
         for layer in &mut self.layers {
-            layer.update_weights(input, learning_rate);
+            layer.update_weights(&input, learning_rate);
             input = layer.output.clone();
         }
     }
