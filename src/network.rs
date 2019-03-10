@@ -110,35 +110,27 @@ impl Layer {
          * C: [n x m] -> Outputs [outputs x 1]
          */
 
-        let m = 1;
+        let m = self.shape.1;
+        let n = 1;
         let k = self.shape.0;
-        let n = self.shape.1;
-        let a = 1_f64;
-        let b = 0_f64;
 
-        assert_eq!(inputs.len(), m * k);
-        assert_eq!(self.weights.len(), k * n);
-        assert_eq!(self.output.len(), m * n);
         unsafe {
             dgemm_s(m, n, k,
-                    a, inputs, &self.weights,
-                    b, &mut self.output,
+                    1_f64, &self.weights, inputs,
+                    0_f64, &mut self.output,
                     Transpose::Ordinary, Transpose::Ordinary);
         }
 
         self.output = self.output.iter().map(nonlinearity).collect();
-
         self.output.clone()
     }
 
     pub fn compute_gradient(&mut self, error: &Vec<f64>) -> Vec<f64> {
-        let mut delta = Vec::<f64>::with_capacity(self.shape.1 as usize);
+        self.delta = Vec::<f64>::with_capacity(self.shape.1);
 
-        for idx in 0..delta.capacity() {
-            delta.push(error[idx] * nonlinearity_prime(&self.output[idx]));
+        for idx in 0..self.delta.capacity() {
+            self.delta.push(error[idx] * nonlinearity_prime(&self.output[idx]));
         }
-
-        self.delta = delta;
 
         let m = 1;
         let n = self.shape.0;
