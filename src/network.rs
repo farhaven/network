@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use cblas::{dgemm, Layout, Transpose};
 use rand::Rng;
 
 fn nonlinearity(z: &f64) -> f64 {
@@ -9,41 +9,167 @@ fn nonlinearity_prime(z: &f64) -> f64 {
     1_f64 - z.powf(2_f64)
 }
 
+/// DGEMM
+///
+/// C <- a A B + b C
+/// Sizes:
+/// A: [m x k]
+/// B: [k x n]
+/// C: [m x n]
+///
+/// Ex: (m, n, k) = (2, 4, 3)
+/// A: [ 2x3 ]
+/// B: [ 3x4 ]
+/// C: [ 2x4 ]
+#[allow(non_snake_case)]
+unsafe fn dgemm_s(m: usize, n: usize, k: usize,
+                  alpha: f64, A: &Vec<f64>, B: &Vec<f64>, beta: f64, C: &mut Vec<f64>,
+                  transpose_a: Transpose, transpose_b: Transpose) {
+    assert_eq!(A.len(), m * k);
+    assert_eq!(B.len(), k * n);
+    assert_eq!(C.len(), m * n);
+
+    /* ldX -> Stride of matrix X */
+    let lda = match transpose_a {
+        Transpose::None => m,
+        _ => k
+    };
+    let ldb = match transpose_b {
+        Transpose::None => k,
+        _ => n
+    };
+    let ldc = m; /* Is this correct? */
+
+    dgemm(Layout::ColumnMajor, transpose_a, transpose_b, /* 0 1 2 */
+          m as i32, n as i32, k as i32,                  /* 3 4 5 */
+          alpha, A, lda as i32, B, ldb as i32,           /* 6 7 8 9 10 */
+          beta, C, ldc as i32);                          /* 11 12 13 */
+}
+
+#[cfg(test)]
+mod test_dgemm {
+    use super::*;
+
+    #[test]
+    fn test_dgemm() {
+        let a = vec![0_f64, 1_f64, 2_f64];
+        let b = vec![1.0, 2.0, 3.0,
+                     4.0, 5.0, 6.0];
+        let mut c = vec![0.0, 0.0, 0.0];
+
+        unsafe {
+            dgemm_s(2, 3, 1,
+                    1.0, &a, &b, 0.0, &mut c,
+                    Transpose::None, Transpose::None);
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Layer {
-    output: Array2<f64>,
-    delta: Array2<f64>,
-    weights: Array2<f64>
+    output: Vec<f64>,
+    delta: Vec<f64>,
+    weights: Vec<f64>,
+    shape: (usize, usize) /* Rows x Cols */
 }
 impl Layer {
     pub fn new(inputs: usize, outputs: usize) -> Layer {
         let mut rng = rand::thread_rng();
-        let weights = Array2::<f64>::from_shape_fn((inputs, outputs), |_| {
+        let mut weights = Vec::<f64>::with_capacity(inputs * outputs);
+        for _ in 0..weights.capacity() {
             let r: f64 = rng.gen();
-            (r * 2.0) - 1.0
-        });
+            weights.push((r * 2_f64) - 1_f64);
+        }
+
+        let mut output = Vec::<f64>::with_capacity(outputs);
+        for _ in 0..outputs {
+            output.push(0_f64);
+        }
+
+        let mut delta = Vec::<f64>::with_capacity(outputs);
+        for _ in 0..outputs {
+            delta.push(0_f64);
+        }
 
         Layer{
             weights,
-            output: Array2::<f64>::zeros((1, outputs)),
-            delta: Array2::<f64>::zeros((1, outputs))
+            output: output,
+            delta: delta,
+            shape: (inputs, outputs)
         }
     }
 
-    pub fn forward(&mut self, inputs: &Array2<f64>) -> Array2<f64> {
-        let output = self.weights.t().dot(&inputs.t()).map(nonlinearity).t().to_owned();
-        self.output = output.clone();
-        output
+    pub fn forward(&mut self, inputs: &Vec<f64>) -> Vec<f64> {
+        /*
+         * DGEMM:
+         *
+         * C <- a AB + b C
+         *
+         * A: [m x k] -> Inputs  [1 x inputs]
+         * B: [k x n] -> Weights [inputs x outputs]
+         * C: [n x m] -> Outputs [outputs x 1]
+         */
+
+        let m = 1;
+        let k = self.shape.0;
+        let n = self.shape.1;
+        let a = 1_f64;
+        let b = 0_f64;
+
+        assert_eq!(inputs.len(), m * k);
+        assert_eq!(self.weights.len(), k * n);
+        assert_eq!(self.output.len(), m * n);
+        unsafe {
+            dgemm_s(m, n, k,
+                    a, inputs, &self.weights,
+                    b, &mut self.output,
+                    Transpose::Ordinary, Transpose::Ordinary);
+        }
+
+        self.output = self.output.iter().map(nonlinearity).collect();
+
+        self.output.clone()
     }
 
-    pub fn compute_gradient(&mut self, error: &Array2<f64>) -> Array2<f64> {
-        self.delta = error * &self.output.map(nonlinearity_prime);
-        self.delta.dot(&self.weights.t())
+    pub fn compute_gradient(&mut self, error: &Vec<f64>) -> Vec<f64> {
+        let mut delta = Vec::<f64>::with_capacity(self.shape.1 as usize);
+
+        for idx in 0..delta.capacity() {
+            delta.push(error[idx] * nonlinearity_prime(&self.output[idx]));
+        }
+
+        self.delta = delta;
+
+        let m = 1;
+        let n = self.shape.0;
+        let k = self.shape.1;
+        let mut res = Vec::<f64>::with_capacity(self.shape.0);
+        unsafe {
+            res.set_len(self.shape.0);
+            assert_eq!(self.delta.len(), m * k);
+            assert_eq!(self.weights.len(), k * n);
+            assert_eq!(res.len(), m * n);
+            dgemm_s(m, n, k,
+                    1_f64, &self.delta, &self.weights,
+                    0_f64, &mut res,
+                    Transpose::None, Transpose::Ordinary);
+        }
+        res
     }
 
-    pub fn update_weights(&mut self, input: &Array2<f64>, learning_rate: f64) {
-        let delta = input.t().dot(&self.delta) * learning_rate;
-        self.weights += &delta;
+    pub fn update_weights(&mut self, input: &Vec<f64>, learning_rate: f64) {
+        let alpha = learning_rate;
+
+        let m = self.shape.0;
+        let n = self.shape.1;
+        let k = 1;
+
+        unsafe {
+            dgemm_s(m, n, k,
+                    alpha, input, &self.delta,
+                    1_f64, &mut self.weights,
+                    Transpose::Ordinary, Transpose::None);
+        }
     }
 }
 
@@ -58,7 +184,7 @@ mod test_layer {
 
     #[test]
     fn test_forward() {
-        let input = Array2::<f64>::from_shape_vec((1, 3), vec![-1_f64, 0_f64, 1_f64]).unwrap();
+        let input = vec![-1_f64, 0_f64, 1_f64];
 
         let mut layer = Layer::new(3, 2);
         let output = layer.forward(&input);
@@ -69,15 +195,15 @@ mod test_layer {
 
     #[test]
     fn test_compute_gradient() {
-        let input = Array2::<f64>::from_shape_vec((1, 3), vec![-1_f64, 0_f64, 1_f64]).unwrap();
-        let error = Array2::<f64>::from_shape_vec((1, 2), vec![0_f64, 0.3_f64]).unwrap();
+        let input = vec![-1_f64, 0_f64, 1_f64];
+        let error = vec![0_f64, 0.3_f64];
 
         let mut layer = Layer::new(3, 2);
         let output = layer.forward(&input);
 
         let gradient = layer.compute_gradient(&error);
-        println!("Output: {}", output);
-        println!("Gradient: {}", gradient);
+        println!("Output: {:?}", output);
+        println!("Gradient: {:?}", gradient);
 
         assert_eq!(gradient.len(), 3);
         assert_eq!(output.len(), 2);
@@ -85,8 +211,8 @@ mod test_layer {
 
     #[test]
     fn test_update_weights() {
-        let input = Array2::<f64>::from_shape_vec((1, 3), vec![-1_f64, 0_f64, 1_f64]).unwrap();
-        let error = Array2::<f64>::from_shape_vec((1, 2), vec![0_f64, 0.3_f64]).unwrap();
+        let input = vec![-1_f64, 0_f64, 1_f64];
+        let error = vec![0_f64, 0.3_f64];
 
         let mut layer = Layer::new(3, 2);
         let _ = layer.forward(&input);
@@ -118,36 +244,39 @@ impl Network {
     }
 
     pub fn forward(&mut self, input: &Vec<f64>) -> Vec<f64> {
-        let mut output = Array2::<f64>::from_shape_vec((1, input.len()), input.to_vec()).unwrap();
+        let mut output = input.clone();
 
         for layer in &mut self.layers {
             output = layer.forward(&output);
         }
 
-        let mut res = Vec::<f64>::with_capacity(output.shape()[0]);
-        res.extend_from_slice(output.column(0).into_slice().unwrap());
-        res
+        output
     }
 
-    pub fn backprop(&mut self, input_param: &Vec<f64>, error_param: &Vec<f64>, learning_rate: f64) {
-        let mut error = Array2::<f64>::from_shape_vec((1, error_param.len()), error_param.to_vec()).unwrap();
+    pub fn backprop(&mut self, input: &Vec<f64>, error: &Vec<f64>, learning_rate: f64) {
+        let mut local_error = error.clone();
 
         for lidx in (0..self.layers.len()).rev() {
             let layer = &mut self.layers[lidx];
-            error = layer.compute_gradient(&error);
+            local_error = layer.compute_gradient(&local_error);
         }
 
-        let mut input = Array2::<f64>::from_shape_vec((1, input_param.len()), input_param.to_vec()).unwrap();
+        let mut local_input = input.clone();
+
         for layer in &mut self.layers {
-            layer.update_weights(&input, learning_rate);
-            input = layer.output.clone();
+            layer.update_weights(&local_input, learning_rate);
+            local_input = layer.output.clone();
         }
     }
 
     pub fn error(&self, output: &Vec<f64>, target: &Vec<f64>) -> Vec<f64> {
-        (Array1::from_vec(target.to_vec()) - Array1::from_vec(output.to_vec())).iter()
-                                                                               .map(|&x| x)
-                                                                               .collect()
+        let mut res = Vec::<f64>::with_capacity(output.len());
+
+        for idx in 0..res.capacity() {
+            res.push(target[idx] - output[idx]);
+        }
+
+        res
     }
 }
 
