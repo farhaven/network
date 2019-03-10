@@ -18,9 +18,9 @@ fn nonlinearity_prime(z: &f64) -> f64 {
 /// C: [m x n]
 ///
 /// Ex: (m, n, k) = (2, 4, 3)
-/// A: [ 2x3 ]
-/// B: [ 3x4 ]
-/// C: [ 2x4 ]
+/// A: [2 x 3]
+/// B: [3 x 4]
+/// C: [2 x 4]
 #[allow(non_snake_case)]
 unsafe fn dgemm_s(m: usize, n: usize, k: usize,
                   alpha: f64, A: &Vec<f64>, B: &Vec<f64>, beta: f64, C: &mut Vec<f64>,
