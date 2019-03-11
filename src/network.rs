@@ -328,7 +328,7 @@ mod test_network {
                 let output = network.forward(input);
                 let error = network.error(&output, target);
                 network.backprop(input, &error, learning_rate);
-                errors.push(error.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64)));
+                errors.push(error.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64)) / (error.len() as f64));
             }
 
             /* Report MSE every 100 iterations */
