@@ -5,20 +5,6 @@ mod integration_tests {
     use rand::thread_rng;
     use rand::seq::SliceRandom;
 
-    fn argmax(v: &Vec<f64>) -> usize {
-        let mut maximum_seen = std::f64::MIN;
-        let mut max_idx = 0;
-
-        for idx in 0..v.len() {
-            if v[idx] > maximum_seen {
-                max_idx = idx;
-                maximum_seen = v[idx];
-            }
-        }
-
-        max_idx
-    }
-
     #[test]
     fn test_load() {
         let labels = match network::mnist_loader::load_labels("mnist/t10k-labels-idx1-ubyte") {
@@ -40,8 +26,6 @@ mod integration_tests {
 
     #[test]
     fn test_train_mnist() {
-        /* TODO: Split off a validation set from the training data and use that to confirm
-         * performance */
         let training_labels = match network::mnist_loader::load_labels("mnist/train-labels-idx1-ubyte") {
             Ok(l) => l,
             Err(x) => panic!(x)
@@ -74,18 +58,16 @@ mod integration_tests {
         };
         assert_eq!(test_images.len(), 10000);
 
-        // let mut network = network::network::Network::new(vec![784, 80, 10]);
-        let mut network = network::network::Network::new(vec![784, 200, 100, 10]);
-        let mut epoch = 0;
-        let target_mse = 0.01;
-        let mut learning_rate = 0.005;
+        let mut network = network::network::Network::new(vec![784, 80, 10]);
+        let mut iter = 0;
+        let target_mse = 0.1;
+        let mut learning_rate = 0.001;
         let mut errors: Vec<f64> = vec![];
-        let mut previous_mse = std::f64::MAX;
 
         loop {
-            epoch += 1;
+            iter += 1;
 
-            println!("epoch: {}", epoch);
+            println!("Iter: {}", iter);
 
             let mut indices: Vec<usize> = (0..training_labels.len()).collect();
             indices.shuffle(&mut thread_rng());
@@ -100,43 +82,53 @@ mod integration_tests {
                 errors.push(error.iter().fold(0_f64, |acc, x| acc + x.powf(2_f64)) / (error.len() as f64));
             }
 
-            let mse = errors.iter().fold(0_f64, |acc, x| acc + x) / (errors.len() as f64);
-            let improvement = previous_mse - mse;
-            println!("\tMSE: {}", mse);
-            if epoch != 1 {
-                println!("\tMSE improvement: {}", improvement);
+            println!("\tMSE:{}", errors.iter().fold(0_f64, |acc, x| acc + x) / (errors.len() as f64));
+
+            if iter % 10 == 0 {
+                let mse = errors.iter().fold(0_f64, |acc, x| acc + x) / (errors.len() as f64);
+                println!("Iter: {}, MSE: {}", iter, mse);
+                if mse <= target_mse {
+                    break;
+                }
+                // learning_rate = mse.sqrt();
+                // println!("New learning rate: {}", learning_rate);
             }
-            previous_mse = mse;
+        }
 
-            if mse <= target_mse {
-                break;
-            }
+        /* Test network with test data set */
+        let mut total = 0;
+        let mut wrong = 0;
+        for idx in 0..test_labels.len() {
+            total += 1;
 
-            if epoch % 10 == 0 && improvement <= 0.01 {
-                learning_rate = 0.005 * mse.sqrt();
-                println!("\tNew learning rate: {}", learning_rate);
-            }
+            let input = &test_images[idx];
+            let target = &test_labels[idx];
 
-            /* Test network with test data set */
-            let mut total = 0;
-            let mut wrong = 0;
-            for idx in 0..test_labels.len() {
-                total += 1;
+            let output = network.forward(input);
 
-                let input = &test_images[idx];
-                let target = &test_labels[idx];
-
-                let output = network.forward(input);
-
-                let label_target = argmax(target);
-                let label_output = argmax(&output);
-
-                if label_output != label_target {
-                    wrong += 1;
+            let mut label_target = 0;
+            let mut val_target = 0_f64;
+            for idx in 0..target.len() {
+                if target[idx] > val_target {
+                    label_target = idx;
+                    val_target = target[idx];
                 }
             }
 
-            println!("\tTotal: {} Wrong: {} PCT: {}", total, wrong, (wrong as f64) / (total as f64) * 100.0);
+            let mut label_test = 0;
+            let mut val_test = 0_f64;
+            for idx in 0..output.len() {
+                if output[idx] > val_test {
+                    label_test = idx;
+                    val_test = output[idx];
+                }
+            }
+
+            if label_test != label_target {
+                wrong += 1;
+            }
         }
+
+        println!("Total: {} Wrong: {} PCT: {}", total, wrong, (wrong as f64) / (total as f64));
     }
 }
