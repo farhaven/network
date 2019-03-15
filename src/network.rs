@@ -1,4 +1,4 @@
-use cblas::{dgemm, Layout, Transpose};
+use blas::*;
 use rand::Rng;
 
 fn nonlinearity(z: &f64) -> f64 {
@@ -7,6 +7,11 @@ fn nonlinearity(z: &f64) -> f64 {
 
 fn nonlinearity_prime(z: &f64) -> f64 {
     1_f64 - z.powf(2_f64)
+}
+
+enum Transpose {
+    None,
+    Ordinary
 }
 
 /// DGEMM
@@ -40,10 +45,20 @@ unsafe fn dgemm_s(m: usize, n: usize, k: usize,
     };
     let ldc = m; /* Is this correct? */
 
-    dgemm(Layout::ColumnMajor, transpose_a, transpose_b, /* 0 1 2 */
-          m as i32, n as i32, k as i32,                  /* 3 4 5 */
-          alpha, A, lda as i32, B, ldb as i32,           /* 6 7 8 9 10 */
-          beta, C, ldc as i32);                          /* 11 12 13 */
+    let ta = match transpose_a {
+        Transpose::None => b'N',
+        _ => b'T'
+    };
+
+    let tb = match transpose_b {
+        Transpose::None => b'N',
+        _ => b'T'
+    };
+
+    dgemm(ta, tb,                              /* 1 2 */
+          m as i32, n as i32, k as i32,        /* 3 4 5 */
+          alpha, A, lda as i32, B, ldb as i32, /* 6 7 8 9 10 */
+          beta, C, ldc as i32);                /* 11 12 13 */
 }
 
 #[cfg(test)]
@@ -55,10 +70,14 @@ mod test_dgemm {
         let a = vec![0_f64, 1_f64, 2_f64];
         let b = vec![1.0, 2.0, 3.0,
                      4.0, 5.0, 6.0];
-        let mut c = vec![0.0, 0.0, 0.0];
+        let mut c = vec![0.0, 0.0];
+
+        let m = 1;
+        let n = 2;
+        let k = 3;
 
         unsafe {
-            dgemm_s(2, 3, 1,
+            dgemm_s(m, n, k,
                     1.0, &a, &b, 0.0, &mut c,
                     Transpose::None, Transpose::None);
         }
