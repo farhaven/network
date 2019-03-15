@@ -1,12 +1,42 @@
 use blas::dgemm;
 use rand::distributions::{Normal, Distribution};
 
+/*
 fn nonlinearity(z: &f64) -> f64 {
     z.tanh()
 }
 
 fn nonlinearity_prime(z: &f64) -> f64 {
     1_f64 - z.powf(2_f64)
+}
+*/
+
+/*
+fn nonlinearity(z: &f64) -> f64 {
+    (1.0 + z.exp()).ln()
+}
+
+fn nonlinearity_prime(z: &f64) -> f64 {
+    1.0 / (1.0 + (-z).exp())
+}
+*/
+
+fn nonlinearity(z: &f64) -> f64 {
+    if z >= &0.0 {
+        *z
+    } else {
+        z * 0.1
+    }
+}
+
+fn nonlinearity_prime(z: &f64) -> f64 {
+    if z > &0.0 {
+        1.0
+    } else if z == &0.0 {
+        0.5
+    } else {
+        0.1
+    }
 }
 
 enum Transpose {
