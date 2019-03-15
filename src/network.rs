@@ -1,5 +1,5 @@
 use blas::dgemm;
-use rand::Rng;
+use rand::distributions::{Normal, Distribution};
 
 fn nonlinearity(z: &f64) -> f64 {
     z.tanh()
@@ -84,10 +84,14 @@ pub struct Layer {
 impl Layer {
     pub fn new(inputs: usize, outputs: usize) -> Layer {
         let mut rng = rand::thread_rng();
+        let dist = Normal::new(0.0, 1.0);
+
         let mut weights = Vec::<f64>::with_capacity(inputs * outputs);
         for _ in 0..weights.capacity() {
-            let r: f64 = rng.gen();
-            weights.push(r - 0.5_f64);
+            let r: f64 = dist.sample(&mut rng);
+            // let w = r * (2.0 / (inputs + outputs) as f64).sqrt();
+            let w = r * (1.0 / (inputs + outputs) as f64).sqrt();
+            weights.push(w);
         }
 
         let mut output = Vec::<f64>::with_capacity(outputs);
