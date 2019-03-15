@@ -123,22 +123,22 @@ mod test_mnist_loader {
 
     #[test]
     fn test_load_label_file() {
-        let labels = match load_labels("mnist/t10k-labels-idx1-ubyte") {
+        let labels = match load_labels("mnist/train-labels-idx1-ubyte") {
             Ok(l) => l,
             Err(x) => panic!(x)
         };
-        assert_eq!(labels.len(), 10000);
+        assert_eq!(labels.len(), 60000);
     }
 
     #[test]
     fn test_load_image_file() {
-        let images = match load_images("mnist/t10k-images-idx3-ubyte") {
+        let images = match load_images("mnist/train-images-idx3-ubyte") {
             Ok(l) => l,
             Err(x) => {
                 println!("Wat: {:?}", x);
                 panic!(x)
             }
         };
-        assert_eq!(images.len(), 10000);
+        assert_eq!(images.len(), 60000);
     }
 }
