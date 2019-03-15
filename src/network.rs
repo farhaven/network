@@ -1,4 +1,4 @@
-use blas::*;
+use blas::dgemm;
 use rand::Rng;
 
 fn nonlinearity(z: &f64) -> f64 {
@@ -35,25 +35,15 @@ unsafe fn dgemm_s(m: usize, n: usize, k: usize,
     assert_eq!(C.len(), m * n);
 
     /* ldX -> Stride of matrix X */
-    let lda = match transpose_a {
-        Transpose::None => m,
-        _ => k
+    let (lda, ta) = match transpose_a {
+        Transpose::None => (m, b'N'),
+        _ => (k, b'T')
     };
-    let ldb = match transpose_b {
-        Transpose::None => k,
-        _ => n
+    let (ldb, tb) = match transpose_b {
+        Transpose::None => (k, b'N'),
+        _ => (n, b'T')
     };
     let ldc = m; /* Is this correct? */
-
-    let ta = match transpose_a {
-        Transpose::None => b'N',
-        _ => b'T'
-    };
-
-    let tb = match transpose_b {
-        Transpose::None => b'N',
-        _ => b'T'
-    };
 
     dgemm(ta, tb,                              /* 1 2 */
           m as i32, n as i32, k as i32,        /* 3 4 5 */
