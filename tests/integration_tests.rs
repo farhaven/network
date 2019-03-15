@@ -115,7 +115,7 @@ mod integration_tests {
             }
 
             if epoch % 10 == 0 && improvement <= 0.01 {
-                learning_rate = 0.005 * mse.sqrt();
+                learning_rate = mse;
                 println!("\tNew learning rate: {}", learning_rate);
             }
 
