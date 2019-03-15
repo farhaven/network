@@ -82,9 +82,7 @@ pub struct Layer {
     shape: (usize, usize) /* Rows x Cols */
 }
 impl Layer {
-    pub fn new(mut inputs: usize, outputs: usize) -> Layer {
-        inputs += 1; /* Bias */
-
+    pub fn new(inputs: usize, outputs: usize) -> Layer {
         let mut rng = rand::thread_rng();
         let mut weights = Vec::<f64>::with_capacity(inputs * outputs);
         for _ in 0..weights.capacity() {
@@ -125,11 +123,9 @@ impl Layer {
         let n = 1;
         let k = self.shape.0;
 
-        let mut local_inputs = inputs.clone();
-        local_inputs.push(1_f64);
         unsafe {
             dgemm_s(m, n, k,
-                    1_f64, &self.weights, &local_inputs,
+                    1_f64, &self.weights, &inputs,
                     0_f64, &mut self.output,
                     Transpose::Ordinary, Transpose::Ordinary);
         }
@@ -163,9 +159,6 @@ impl Layer {
     }
 
     pub fn update_weights(&mut self, input: &Vec<f64>, learning_rate: f64) {
-        let mut local_input = input.clone();
-        local_input.push(1_f64); /* Bias */
-
         let alpha = learning_rate;
 
         let m = self.shape.0;
@@ -174,7 +167,7 @@ impl Layer {
 
         unsafe {
             dgemm_s(m, n, k,
-                    alpha, &local_input, &self.delta,
+                    alpha, &input, &self.delta,
                     1_f64, &mut self.weights,
                     Transpose::Ordinary, Transpose::None);
         }
