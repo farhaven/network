@@ -42,14 +42,14 @@ mod integration_tests {
     fn test_train_mnist() {
         /* TODO: Split off a validation set from the training data and use that to confirm
          * performance */
-        let training_labels = match network::mnist_loader::load_labels("mnist/train-labels-idx1-ubyte") {
+        let mut training_labels = match network::mnist_loader::load_labels("mnist/train-labels-idx1-ubyte") {
             Ok(l) => l,
             Err(x) => panic!(x)
         };
 
         assert_eq!(training_labels.len(), 60000);
 
-        let training_images = match network::mnist_loader::load_images("mnist/train-images-idx3-ubyte") {
+        let mut training_images = match network::mnist_loader::load_images("mnist/train-images-idx3-ubyte") {
             Ok(l) => l,
             Err(x) => {
                 println!("Wat: {:?}", x);
@@ -58,27 +58,29 @@ mod integration_tests {
         };
         assert_eq!(training_images.len(), 60000);
 
-        let test_labels = match network::mnist_loader::load_labels("mnist/t10k-labels-idx1-ubyte") {
+        let test_labels = training_labels.split_off(training_labels.len() - 10000);
+        let test_images = training_images.split_off(training_images.len() - 10000);
+
+        let validation_labels = match network::mnist_loader::load_labels("mnist/t10k-labels-idx1-ubyte") {
             Ok(l) => l,
             Err(x) => panic!(x)
         };
+        assert_eq!(validation_labels.len(), 10000);
 
-        assert_eq!(test_labels.len(), 10000);
-
-        let test_images = match network::mnist_loader::load_images("mnist/t10k-images-idx3-ubyte") {
+        let validation_images = match network::mnist_loader::load_images("mnist/t10k-images-idx3-ubyte") {
             Ok(l) => l,
             Err(x) => {
                 println!("Wat: {:?}", x);
                 panic!(x)
             }
         };
-        assert_eq!(test_images.len(), 10000);
+        assert_eq!(validation_images.len(), 10000);
 
-        // let mut network = network::network::Network::new(vec![784, 80, 10]);
-        let mut network = network::network::Network::new(vec![784, 200, 100, 10]);
+        let mut network = network::network::Network::new(vec![784, 80, 10]);
+        // let mut network = network::network::Network::new(vec![784, 200, 100, 10]);
         let mut epoch = 0;
         let target_mse = 0.01;
-        let mut learning_rate = 0.005;
+        let mut learning_rate = 0.05;
         let mut errors: Vec<f64> = vec![];
         let mut previous_mse = std::f64::MAX;
 
@@ -138,5 +140,26 @@ mod integration_tests {
 
             println!("\tTotal: {} Wrong: {} PCT: {}", total, wrong, (wrong as f64) / (total as f64) * 100.0);
         }
+
+        /* Test network with test data set */
+        let mut total = 0;
+        let mut wrong = 0;
+        for idx in 0..validation_labels.len() {
+            total += 1;
+
+            let input = &validation_images[idx];
+            let target = &validation_labels[idx];
+
+            let output = network.forward(input);
+
+            let label_target = argmax(target);
+            let label_output = argmax(&output);
+
+            if label_output != label_target {
+                wrong += 1;
+            }
+        }
+
+        println!("Test labels: Total: {} Wrong: {} PCT: {}", total, wrong, (wrong as f64) / (total as f64) * 100.0);
     }
 }
