@@ -105,7 +105,7 @@ pub fn load_images(path: &str) -> Result<Vec<Vec<f64>>, MNistLoadError> {
             return Err(MNistLoadError::String(format!("Read {} bytes, expected {}", sz, numbytes)))
         }
 
-        let val: Vec<f64> = img.iter().map(|&x| x as f64).collect();
+        let val: Vec<f64> = img.iter().map(|&x| (x as f64) / 255.0).collect();
 
         res.push(val);
     }
