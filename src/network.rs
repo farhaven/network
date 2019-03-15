@@ -367,7 +367,7 @@ mod test_network {
                            (vec![1_f64, 1_f64], vec![0_f64])];
 
         let target_mse = 0.005;
-        let mut learning_rate = 1_f64;
+        let mut learning_rate = 0.01_f64;
         let mut errors: Vec<f64> = vec![];
 
         let mut iter = 0;
@@ -389,7 +389,7 @@ mod test_network {
                     println!("Reached target MSE after {} iterations", iter);
                     break;
                 }
-                learning_rate = mse.sqrt();
+                learning_rate = mse;
             }
         }
 
