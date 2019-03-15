@@ -82,7 +82,9 @@ pub struct Layer {
     shape: (usize, usize) /* Rows x Cols */
 }
 impl Layer {
-    pub fn new(inputs: usize, outputs: usize) -> Layer {
+    pub fn new(mut inputs: usize, outputs: usize) -> Layer {
+        inputs += 1;
+
         let mut rng = rand::thread_rng();
         let dist = Normal::new(0.0, 1.0);
 
@@ -127,9 +129,11 @@ impl Layer {
         let n = 1;
         let k = self.shape.0;
 
+        let mut local_input = inputs.clone();
+        local_input.push(1_f64);
         unsafe {
             dgemm_s(m, n, k,
-                    1_f64, &self.weights, &inputs,
+                    1_f64, &self.weights, &local_input,
                     0_f64, &mut self.output,
                     Transpose::Ordinary, Transpose::Ordinary);
         }
@@ -169,9 +173,12 @@ impl Layer {
         let n = self.shape.1;
         let k = 1;
 
+        let mut local_input = input.clone();
+        local_input.push(1_f64);
+
         unsafe {
             dgemm_s(m, n, k,
-                    alpha, &input, &self.delta,
+                    alpha, &local_input, &self.delta,
                     1_f64, &mut self.weights,
                     Transpose::Ordinary, Transpose::None);
         }
@@ -210,7 +217,7 @@ mod test_layer {
         println!("Output: {:?}", output);
         println!("Gradient: {:?}", gradient);
 
-        assert_eq!(gradient.len(), 3);
+        assert_eq!(gradient.len(), 4);
         assert_eq!(output.len(), 2);
     }
 
