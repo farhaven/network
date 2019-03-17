@@ -76,10 +76,17 @@ mod integration_tests {
         };
         assert_eq!(validation_images.len(), 10000);
 
-        let mut network = network::network::Network::new(vec![784, 80, 10]);
-        // let mut network = network::network::Network::new(vec![784, 200, 100, 10]);
+        /*
+         * Topography 784 x 80 x 10 with target MSE 0.01 gives 2.85% error
+         * Topography 784 x 200 x 100 x 10 with target MSE 0.01 gives 2.52% error
+         * Topography 784 x 200 x 100 x 10 with target MSE 0.001 gives 1.6% error  // XXX: Not run to completion
+         * Topography 784 x 2000 x 1000 x 400 x 10 with target MSE 0.001 gives 1.28% error
+         */
+
+        // let mut network = network::network::Network::new(vec![784, 80, 10]); // gives 2.85% error
+        let mut network = network::network::Network::new(vec![784, 2000, 1000, 400, 10]);
         let mut epoch = 0;
-        let target_mse = 0.01;
+        let target_mse = 0.001;
         let mut learning_rate = 0.05;
         let mut errors: Vec<f64> = vec![];
         let mut previous_mse = std::f64::MAX;
@@ -110,10 +117,6 @@ mod integration_tests {
             }
             previous_mse = mse;
 
-            if mse <= target_mse {
-                break;
-            }
-
             if epoch % 10 == 0 && improvement <= 0.01 {
                 learning_rate = mse;
                 println!("\tNew learning rate: {}", learning_rate);
@@ -139,6 +142,10 @@ mod integration_tests {
             }
 
             println!("\tTotal: {} Wrong: {} PCT: {}", total, wrong, (wrong as f64) / (total as f64) * 100.0);
+
+            if mse <= target_mse {
+                break;
+            }
         }
 
         /* Test network with test data set */
