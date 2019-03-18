@@ -75,7 +75,7 @@ unsafe fn dgemm_s(m: usize, n: usize, k: usize,
         Transpose::None => (k, b'N'),
         _ => (n, b'T')
     };
-    let ldc = m; /* Is this correct? */
+    let ldc = m;
 
     dgemm(ta, tb,                              /* 1 2 */
           m as i32, n as i32, k as i32,        /* 3 4 5 */
@@ -89,14 +89,27 @@ mod test_dgemm {
 
     #[test]
     fn test_dgemm() {
-        let a = vec![0_f64, 1_f64, 2_f64, 3_f64];
-        let b = vec![1.0, 2.0, 3.0,
-                     4.0, 5.0, 6.0];
-        let mut c = vec![1.0; 6];
+        // 4x5
+        let a = vec![0.0, 1.0, 2.0, 3.0,
+                     4.0, 5.0, 6.0, 7.0,
+                     8.0, 9.0, 0.0, 1.0,
+                     2.0, 3.0, 4.0, 5.0,
+                     -1.0, -2.0, -3.0, -4.0];
+        // 5x4
+        let b = vec![1.0, 2.0, 3.0, 4.0, 5.0,
+                     6.0, 7.0, 8.0, 9.0, 0.0,
+                     -1.0, -2.1, -0.5, -3.85, -31.0,
+                     2.0, 1.0, 0.0, 3.0, 2.2];
+        // 4x4
+        let mut c = vec![1.0; 4*4];
 
-        let m = 2;
-        let n = 3;
-        let k = 2;
+        let m = 4;
+        let n = 4;
+        let k = 5;
+
+        assert_eq!(a.len(), m * k);
+        assert_eq!(b.len(), k * n);
+        assert_eq!(c.len(), m * n);
 
         unsafe {
             dgemm_s(m, n, k,
@@ -107,7 +120,11 @@ mod test_dgemm {
 
         println!("A: {:?}, B: {:?}, C: {:?}", a, b, c);
 
-        assert_eq!(c, vec![4.5, 7.5, 8.5, 15.5, 12.5, 23.5]);
+        let target = vec![35.5, 40.5, 15.5, 20.5,
+                          110.5, 140.5, 90.5, 120.5,
+                          11.399999999999999, 34.95, 63.5, 87.05,
+                          8.3, 12.1, 15.899999999999999, 19.7];
+        assert_eq!(c, target);
     }
 }
 
