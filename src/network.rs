@@ -87,20 +87,25 @@ mod test_dgemm {
 
     #[test]
     fn test_dgemm() {
-        let a = vec![0_f64, 1_f64, 2_f64];
+        let a = vec![0_f64, 1_f64, 2_f64, 3_f64];
         let b = vec![1.0, 2.0, 3.0,
                      4.0, 5.0, 6.0];
-        let mut c = vec![0.0, 0.0];
+        let mut c = vec![1.0; 6];
 
-        let m = 1;
-        let n = 2;
-        let k = 3;
+        let m = 2;
+        let n = 3;
+        let k = 2;
 
         unsafe {
             dgemm_s(m, n, k,
-                    1.0, &a, &b, 0.0, &mut c,
+                    1.0, &a, &b,
+                    0.5, &mut c,
                     Transpose::None, Transpose::None);
         }
+
+        println!("A: {:?}, B: {:?}, C: {:?}", a, b, c);
+
+        assert_eq!(c, vec![4.5, 7.5, 8.5, 15.5, 12.5, 23.5]);
     }
 }
 
