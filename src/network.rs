@@ -25,8 +25,10 @@ fn nonlinearity(z: &f64) -> f64 {
     if z >= &0.0 {
         *z
     } else {
-        z * 0.1
+        let a = 0.1;
+        a * (z.exp() - 1.0)
     }
+
 }
 
 fn nonlinearity_prime(z: &f64) -> f64 {
