@@ -84,8 +84,8 @@ mod integration_tests {
          */
 
         // let mut network = network::network::Network::new(vec![784, 80, 10]); // gives 2.85% error
-        // let mut network = network::network::Network::new(vec![784, 2000, 1000, 400, 10]);
-        let mut network = network::network::Network::new(vec![784, 300, 30, 10]);
+        let mut network = network::network::Network::new(vec![784, 2000, 1000, 400, 10]);
+        // let mut network = network::network::Network::new(vec![784, 300, 30, 10]);
         let mut epoch = 0;
         let target_mse = 0.001;
         let mut learning_rate = 0.05;
