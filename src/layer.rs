@@ -89,12 +89,11 @@ impl Neuronal {
 
         let mut local_input = inputs.clone();
         local_input.push(1_f64);
-        unsafe {
-            dgemm_s(m, n, k,
-                    1_f64, &self.weights, &local_input,
-                    0_f64, &mut self.output,
-                    Transpose::Ordinary, Transpose::Ordinary);
-        }
+
+        dgemm_s(m, n, k,
+                1_f64, &self.weights, &local_input,
+                0_f64, &mut self.output,
+                Transpose::Ordinary, Transpose::Ordinary);
 
         self.output = self.output.iter().map(nonlinearity).collect();
         self.output.clone()
@@ -111,16 +110,14 @@ impl Neuronal {
         let n = self.shape.0;
         let k = self.shape.1;
         let mut res = Vec::<f64>::with_capacity(self.shape.0);
-        unsafe {
-            res.set_len(self.shape.0);
-            assert_eq!(self.delta.len(), m * k);
-            assert_eq!(self.weights.len(), k * n);
-            assert_eq!(res.len(), m * n);
-            dgemm_s(m, n, k,
-                    1_f64, &self.delta, &self.weights,
-                    0_f64, &mut res,
-                    Transpose::None, Transpose::Ordinary);
-        }
+        unsafe { res.set_len(self.shape.0); }
+        assert_eq!(self.delta.len(), m * k);
+        assert_eq!(self.weights.len(), k * n);
+        assert_eq!(res.len(), m * n);
+        dgemm_s(m, n, k,
+                1_f64, &self.delta, &self.weights,
+                0_f64, &mut res,
+                Transpose::None, Transpose::Ordinary);
         res
     }
 
@@ -134,12 +131,10 @@ impl Neuronal {
         let mut local_input = input.clone();
         local_input.push(1_f64);
 
-        unsafe {
-            dgemm_s(m, n, k,
-                    alpha, &local_input, &self.delta,
-                    1_f64, &mut self.weights,
-                    Transpose::Ordinary, Transpose::None);
-        }
+        dgemm_s(m, n, k,
+                alpha, &local_input, &self.delta,
+                1_f64, &mut self.weights,
+                Transpose::Ordinary, Transpose::None);
     }
 }
 

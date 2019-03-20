@@ -18,7 +18,7 @@ pub enum Transpose {
 /// B: [3 x 4]
 /// C: [2 x 4]
 #[allow(non_snake_case)]
-pub unsafe fn dgemm_s(m: usize, n: usize, k: usize,
+pub fn dgemm_s(m: usize, n: usize, k: usize,
                   alpha: f64, A: &Vec<f64>, B: &Vec<f64>, beta: f64, C: &mut Vec<f64>,
                   transpose_a: Transpose, transpose_b: Transpose) {
     assert_eq!(A.len(), m * k);
@@ -36,10 +36,12 @@ pub unsafe fn dgemm_s(m: usize, n: usize, k: usize,
     };
     let ldc = m;
 
-    dgemm(ta, tb,                              /* 1 2 */
-          m as i32, n as i32, k as i32,        /* 3 4 5 */
-          alpha, A, lda as i32, B, ldb as i32, /* 6 7 8 9 10 */
-          beta, C, ldc as i32);                /* 11 12 13 */
+    unsafe {
+        dgemm(ta, tb,                              /* 1 2 */
+              m as i32, n as i32, k as i32,        /* 3 4 5 */
+              alpha, A, lda as i32, B, ldb as i32, /* 6 7 8 9 10 */
+              beta, C, ldc as i32);                /* 11 12 13 */
+    }
 }
 
 #[cfg(test)]
