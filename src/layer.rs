@@ -41,15 +41,16 @@ fn nonlinearity_prime(z: &f64) -> f64 {
         0.1
     }
 }
+
 #[derive(Debug)]
-pub struct Layer {
+pub struct Neuronal {
     pub output: Vec<f64>,
     delta: Vec<f64>,
     weights: Vec<f64>,
     shape: (usize, usize) /* Rows x Cols */
 }
-impl Layer {
-    pub fn new(mut inputs: usize, outputs: usize) -> Layer {
+impl Neuronal {
+    pub fn new(mut inputs: usize, outputs: usize) -> Neuronal {
         inputs += 1;
 
         let mut rng = rand::thread_rng();
@@ -73,7 +74,7 @@ impl Layer {
             delta.push(0_f64);
         }
 
-        Layer{
+        Neuronal{
             weights,
             output: output,
             delta: delta,
@@ -143,19 +144,19 @@ impl Layer {
 }
 
 #[cfg(test)]
-mod test_layer {
+mod test_neuronal {
     use super::*;
 
     #[test]
     fn test_init() {
-        let _layer = Layer::new(3, 2);
+        let _layer = Neuronal::new(3, 2);
     }
 
     #[test]
     fn test_forward() {
         let input = vec![-1_f64, 0_f64, 1_f64];
 
-        let mut layer = Layer::new(3, 2);
+        let mut layer = Neuronal::new(3, 2);
         let output = layer.forward(&input);
 
         assert_eq!(output.len(), 2);
@@ -167,7 +168,7 @@ mod test_layer {
         let input = vec![-1_f64, 0_f64, 1_f64];
         let error = vec![0_f64, 0.3_f64];
 
-        let mut layer = Layer::new(3, 2);
+        let mut layer = Neuronal::new(3, 2);
         let output = layer.forward(&input);
 
         let gradient = layer.compute_gradient(&error);
@@ -183,7 +184,7 @@ mod test_layer {
         let input = vec![-1_f64, 0_f64, 1_f64];
         let error = vec![0_f64, 0.3_f64];
 
-        let mut layer = Layer::new(3, 2);
+        let mut layer = Neuronal::new(3, 2);
         let _ = layer.forward(&input);
         let _ = layer.compute_gradient(&error);
         layer.update_weights(&input, 2_f64);

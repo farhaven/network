@@ -1,19 +1,24 @@
-use crate::layer::Layer;
+use crate::layer::Neuronal;
+
+#[derive(Debug)]
+enum WrappedLayer {
+    Neuronal(Neuronal)
+}
 
 #[derive(Debug)]
 pub struct Network {
-    layers: Vec<Layer>,
+    layers: Vec<WrappedLayer>,
     layer_sizes: Vec<usize>
 }
 
 impl Network {
     pub fn new(layer_sizes: Vec<usize>) -> Network {
-        let mut layers = Vec::<Layer>::new();
+        let mut layers = Vec::<WrappedLayer>::new();
 
         for idx in 0..layer_sizes.len() - 1 {
             let inputs = layer_sizes[idx];
             let outputs = layer_sizes[idx + 1];
-            layers.push(Layer::new(inputs, outputs));
+            layers.push(WrappedLayer::Neuronal(Neuronal::new(inputs, outputs)));
         }
 
         Network{
@@ -25,7 +30,11 @@ impl Network {
     pub fn forward(&mut self, input: &Vec<f64>) -> Vec<f64> {
         let mut output = input.clone();
 
-        for layer in &mut self.layers {
+        for wrapper in &mut self.layers {
+            let layer = match wrapper {
+                WrappedLayer::Neuronal(x) => x
+            };
+
             output = layer.forward(&output);
         }
 
@@ -36,13 +45,18 @@ impl Network {
         let mut local_error = error.clone();
 
         for lidx in (0..self.layers.len()).rev() {
-            let layer = &mut self.layers[lidx];
+            let layer = match &mut self.layers[lidx] {
+                WrappedLayer::Neuronal(x) => x
+            };
             local_error = layer.compute_gradient(&local_error);
         }
 
         let mut local_input = input.clone();
 
-        for layer in &mut self.layers {
+        for wrapper in &mut self.layers {
+            let layer = match wrapper {
+                WrappedLayer::Neuronal(x) => x
+            };
             layer.update_weights(&local_input, learning_rate);
             local_input = layer.output.clone();
         }
