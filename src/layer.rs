@@ -12,7 +12,7 @@ pub struct Neuronal {
     nonlinearity: Nonlinearity
 }
 impl Neuronal {
-    pub fn new(mut inputs: usize, outputs: usize) -> Neuronal {
+    pub fn new(mut inputs: usize, outputs: usize, nonlinearity: Nonlinearity) -> Neuronal {
         inputs += 1;
 
         let mut rng = rand::thread_rng();
@@ -41,7 +41,7 @@ impl Neuronal {
             output: output,
             delta: delta,
             shape: (inputs, outputs),
-            nonlinearity: Nonlinearity::Tanh
+            nonlinearity
         }
     }
 
@@ -107,14 +107,14 @@ mod test_neuronal {
 
     #[test]
     fn test_init() {
-        let _layer = Neuronal::new(3, 2);
+        let _layer = Neuronal::new(3, 2, Nonlinearity::Tanh);
     }
 
     #[test]
     fn test_forward() {
         let input = vec![-1_f64, 0_f64, 1_f64];
 
-        let mut layer = Neuronal::new(3, 2);
+        let mut layer = Neuronal::new(3, 2, Nonlinearity::Tanh);
         let output = layer.forward(&input);
 
         assert_eq!(output.len(), 2);
@@ -126,7 +126,7 @@ mod test_neuronal {
         let input = vec![-1_f64, 0_f64, 1_f64];
         let error = vec![0_f64, 0.3_f64];
 
-        let mut layer = Neuronal::new(3, 2);
+        let mut layer = Neuronal::new(3, 2, Nonlinearity::Tanh);
         let output = layer.forward(&input);
 
         let gradient = layer.compute_gradient(&error);
@@ -142,7 +142,7 @@ mod test_neuronal {
         let input = vec![-1_f64, 0_f64, 1_f64];
         let error = vec![0_f64, 0.3_f64];
 
-        let mut layer = Neuronal::new(3, 2);
+        let mut layer = Neuronal::new(3, 2, Nonlinearity::Tanh);
         let _ = layer.forward(&input);
         let _ = layer.compute_gradient(&error);
         layer.update_weights(&input, 2_f64);

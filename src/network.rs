@@ -1,4 +1,5 @@
 use crate::layer::Neuronal;
+use crate::nonlinearity::Nonlinearity;
 
 #[derive(Debug)]
 enum WrappedLayer {
@@ -18,7 +19,7 @@ impl Network {
         for idx in 0..layer_sizes.len() - 1 {
             let inputs = layer_sizes[idx];
             let outputs = layer_sizes[idx + 1];
-            layers.push(WrappedLayer::Neuronal(Neuronal::new(inputs, outputs)));
+            layers.push(WrappedLayer::Neuronal(Neuronal::new(inputs, outputs, Nonlinearity::Tanh)));
         }
 
         Network{
