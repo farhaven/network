@@ -72,12 +72,10 @@ mod test_dgemm {
         assert_eq!(b.len(), k * n);
         assert_eq!(c.len(), m * n);
 
-        unsafe {
-            dgemm_s(m, n, k,
-                    1.0, &a, &b,
-                    0.5, &mut c,
-                    Transpose::None, Transpose::None);
-        }
+        dgemm_s(m, n, k,
+                1.0, &a, &b,
+                0.5, &mut c,
+                Transpose::None, Transpose::None);
 
         println!("A: {:?}, B: {:?}, C: {:?}", a, b, c);
 
