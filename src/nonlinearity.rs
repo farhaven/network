@@ -2,7 +2,7 @@
 pub enum Nonlinearity {
     Tanh,
     Sigmoid,
-    LeakyELU
+    LeakyELU(f64) // leak, e.g. 0.1
 }
 
 impl Nonlinearity {
@@ -10,11 +10,10 @@ impl Nonlinearity {
         match self {
             Nonlinearity::Tanh => z.tanh(),
             Nonlinearity::Sigmoid => 1.0 / (1.0 + (-z).exp()),
-            Nonlinearity::LeakyELU => if z >= &0.0 {
+            Nonlinearity::LeakyELU(leak) => if z >= &0.0 {
                 *z
             } else {
-                let a = 0.1;
-                a * (z.exp() - 1.0)
+                leak * (z.exp() - 1.0)
             }
         }
     }
@@ -23,12 +22,12 @@ impl Nonlinearity {
         match self {
             Nonlinearity::Tanh => 1_f64 - z.powf(2_f64),
             Nonlinearity::Sigmoid => self.forward(z) * (1.0 - self.forward(z)),
-            Nonlinearity::LeakyELU => if z > &0.0 {
+            Nonlinearity::LeakyELU(leak) => if z > &0.0 {
                     1.0
                 } else if z == &0.0 {
                     0.5
                 } else {
-                    0.1
+                    leak
                 }
         }
     }
