@@ -86,3 +86,24 @@ mod test_dgemm {
         assert_eq!(c, target);
     }
 }
+
+#[allow(non_snake_case)]
+pub fn convolve(A: &Vec<f64>, _filter: &Vec<f64>) -> Vec<f64> {
+    let mut res = Vec::<f64>::with_capacity(A.len());
+    unsafe { res.set_len(A.len()); }
+
+    unimplemented!("Not implemented yet");
+}
+
+#[cfg(test)]
+mod test_convolve {
+    use super::*;
+
+    #[test]
+    fn test_convolve() {
+        let a = vec![1.0; 16];
+        let f = vec![1.0 / 9.0 ; 9];
+        let r = convolve(&a, &f);
+        println!("A: {:?} F: {:?} R: {:?}", a, f, r);
+    }
+}
