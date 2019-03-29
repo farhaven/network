@@ -1,53 +1,15 @@
 use crate::matrixmath::{dgemm_s, Transpose};
+use crate::nonlinearity::Nonlinearity;
 
 use rand::distributions::{Normal, Distribution};
-
-/*
-fn nonlinearity(z: &f64) -> f64 {
-    z.tanh()
-}
-
-fn nonlinearity_prime(z: &f64) -> f64 {
-    1_f64 - z.powf(2_f64)
-}
-*/
-
-/*
-fn nonlinearity(z: &f64) -> f64 {
-    (1.0 + z.exp()).ln()
-}
-
-fn nonlinearity_prime(z: &f64) -> f64 {
-    1.0 / (1.0 + (-z).exp())
-}
-*/
-
-fn nonlinearity(z: &f64) -> f64 {
-    if z >= &0.0 {
-        *z
-    } else {
-        let a = 0.1;
-        a * (z.exp() - 1.0)
-    }
-
-}
-
-fn nonlinearity_prime(z: &f64) -> f64 {
-    if z > &0.0 {
-        1.0
-    } else if z == &0.0 {
-        0.5
-    } else {
-        0.1
-    }
-}
 
 #[derive(Debug)]
 pub struct Neuronal {
     pub output: Vec<f64>,
     delta: Vec<f64>,
     weights: Vec<f64>,
-    shape: (usize, usize) /* Rows x Cols */
+    shape: (usize, usize), /* Rows x Cols */
+    nonlinearity: Nonlinearity
 }
 impl Neuronal {
     pub fn new(mut inputs: usize, outputs: usize) -> Neuronal {
@@ -78,7 +40,8 @@ impl Neuronal {
             weights,
             output: output,
             delta: delta,
-            shape: (inputs, outputs)
+            shape: (inputs, outputs),
+            nonlinearity: Nonlinearity::Tanh
         }
     }
 
@@ -95,7 +58,7 @@ impl Neuronal {
                 0_f64, &mut self.output,
                 Transpose::Ordinary, Transpose::Ordinary);
 
-        self.output = self.output.iter().map(nonlinearity).collect();
+        self.output = self.output.iter().map(|x| self.nonlinearity.forward(x)).collect();
         self.output.clone()
     }
 
@@ -103,7 +66,7 @@ impl Neuronal {
         self.delta = Vec::<f64>::with_capacity(self.shape.1);
 
         for idx in 0..self.delta.capacity() {
-            self.delta.push(error[idx] * nonlinearity_prime(&self.output[idx]));
+            self.delta.push(error[idx] * self.nonlinearity.backward(&self.output[idx]));
         }
 
         let m = 1;
