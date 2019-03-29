@@ -27,7 +27,7 @@ impl Nonlinearity {
                 } else if z == &0.0 {
                     0.5
                 } else {
-                    leak
+                    *leak
                 }
         }
     }
